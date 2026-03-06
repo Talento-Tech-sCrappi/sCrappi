@@ -9,11 +9,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -23,18 +21,21 @@ public class User {
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
     @Column(nullable=false,unique=true)
-    private String userName;
+    private Long document;
+    @Column(nullable=false,unique=true)
+    private Long phone;
+    @Column(nullable=false,unique=true)
+    private String name;
+    @Column(nullable=false, unique=true)
+    private String lastName;
     @Column(nullable=false, unique=true)
     private String email;
+    @Enumerated(EnumType.STRING)
+    private Role role;
     @Column(nullable=false)
     private String password;
     @Column(nullable=false)
     private boolean status;
-    @Column(nullable=false)
-    @Enumerated(EnumType.STRING)
-    private Role role;
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private Employed employed;
     @CreationTimestamp
     @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,12 +53,36 @@ public class User {
         this.id = id;
     }
 
-    public String getUserName() {
-        return userName;
+    public Long getDocument() {
+        return document;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setDocument(Long document) {
+        this.document = document;
+    }
+
+    public Long getPhone() {
+        return phone;
+    }
+
+    public void setPhone(Long phone) {
+        this.phone = phone;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getEmail() {
@@ -68,20 +93,20 @@ public class User {
         this.email = email;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     public String getPassword() {
         return password;
     }
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public  Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 
     public boolean isStatus() {
@@ -91,4 +116,6 @@ public class User {
     public void setStatus(boolean status) {
         this.status = status;
     }
+
+
 }
