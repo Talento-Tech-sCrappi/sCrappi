@@ -4,9 +4,21 @@
       <h2 class="fw-bold text-dark mb-1">Administración de Personal</h2>
       <p class="text-muted small">Gestión de geovallas y supervisión de nómina.</p>
     </div>
-    <button class="btn btn-primary rounded-pill px-4 shadow-sm">
-      <i class="bi bi-person-plus-fill me-2"></i>Nuevo Empleado
-    </button>
+    <div class="d-flex gap-2">
+      <div class="input-group input-group-sm d-none d-md-flex" style="width: 250px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+        <input 
+          type="text" 
+          class="form-control border-start-0" 
+          placeholder="Buscar empleado..."
+          (input)="filtrarEmpleados($event)">
+      </div>
+      <button 
+        class="btn btn-primary rounded-pill px-4 shadow-sm"
+        (click)="abrirModalNuevo(modalEmpleado)">
+        <i class="bi bi-person-plus-fill me-2"></i>Nuevo Empleado
+      </button>
+    </div>
   </div>
 
   <div class="row g-3 mb-4">
@@ -24,7 +36,10 @@
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 15px;">
+  <div class="card border-0 shadow-sm overflow-hidden mb-4" style="border-radius: 15px;">
+    <div class="card-header bg-white py-3 border-0">
+      <h6 class="fw-bold mb-0 text-dark">Configuración de Geovallas Activas</h6>
+    </div>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead class="bg-light">
@@ -37,7 +52,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let emp of listaEmpleados">
+          <tr *ngFor="let emp of listaFiltrada">
             <td class="ps-4">
               <div class="fw-bold">{{ emp.nombre }}</div>
               <div class="text-muted small">{{ emp.codigo }}</div>
@@ -59,4 +74,79 @@
       </table>
     </div>
   </div>
+
+  <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+      <h6 class="fw-bold mb-0 text-dark">Historial Reciente de Marcajes</h6>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="bg-light text-muted small text-uppercase">
+          <tr>
+            <th class="ps-4 py-3">Fecha y Hora</th>
+            <th>Empleado</th>
+            <th>Evento</th>
+            <th class="text-center">Validación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let reg of historialFiltrado" [ngClass]="{'table-danger-subtle': !reg.validacion}">
+            <td class="ps-4">{{ reg.fecha }}</td>
+            <td>{{ reg.nombre }}</td>
+            <td>
+              <span class="badge" [ngClass]="reg.validacion ? 'bg-primary-subtle text-primary' : 'bg-danger'">
+                {{ reg.evento }}
+              </span>
+            </td>
+            <td class="text-center">
+              <i class="bi" [ngClass]="reg.validacion ? 'bi-check-circle-fill text-success' : 'bi-exclamation-circle-fill text-danger'"></i>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
+<ng-template #modalEmpleado let-modal>
+  <div class="modal-header bg-dark text-white">
+    <h5 class="modal-title fw-bold">Registrar Nuevo Colaborador</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4">
+    <form [formGroup]="empleadoForm">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label small fw-bold">Nombre Completo</label>
+          <input type="text" class="form-control" formControlName="nombre" placeholder="Ej: Andres Perez">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-bold">ID / Código</label>
+          <input type="text" class="form-control" formControlName="codigo" placeholder="Ej: OPER-001">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-bold">Latitud Asignada</label>
+          <input type="number" class="form-control" formControlName="lat" placeholder="6.1440">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-bold">Longitud Asignada</label>
+          <input type="number" class="form-control" formControlName="lon" placeholder="-75.6150">
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-bold">Radio: {{ empleadoForm.get('radio')?.value }}m</label>
+          <input type="range" class="form-range" min="50" max="500" step="10" formControlName="radio">
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer border-0">
+    <button type="button" class="btn btn-light rounded-pill" (click)="modal.dismiss()">Cerrar</button>
+    <button 
+      type="button" 
+      class="btn btn-primary rounded-pill px-4" 
+      [disabled]="empleadoForm.invalid"
+      (click)="guardarNuevoEmpleado()">
+      Guardar
+    </button>
+  </div>
+</ng-template>

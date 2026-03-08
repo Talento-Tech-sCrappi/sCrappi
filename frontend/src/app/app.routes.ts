@@ -5,6 +5,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { HomeMarcameComponent } from './components/dashboard/home-marcame/home-marcame.component';
 import { AdminUsersComponent } from './components/dashboard/admin-users/admin-users.component';
 import { ReportsComponent } from './components/dashboard/reports/reports.component';
+import { HomeDashboardComponent } from './components/dashboard/home-dashboard/home-dashboard.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -14,6 +15,8 @@ export const routes: Routes = [
     path: 'dashboard',
     component: DashboardComponent,
     children: [
+      { path: '', component: HomeDashboardComponent },
+
       { path: 'home', component: HomeMarcameComponent }, // El botón que ya hiciste
       { path: 'usuarios', component: AdminUsersComponent }, // Solo para el Admin
       { path: 'reportes', component: ReportsComponent },
