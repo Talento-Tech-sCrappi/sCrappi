@@ -51,27 +51,33 @@ onLogin(): void {
 
   this.userService.getUsers().subscribe({
     next: (users) => {
-      //console.log('Estructura real en DB:', users[0]);
-      // 💡 NORMALIZACIÓN: Convertimos todo a String y usamos los nombres exactos de la DB
       const user = users.find(u =>
         String(u.document).trim() === String(document).trim() && 
         String(u.password) === String(password)
       );
 
       if (user) {
-        //console.log('✅ Usuario encontrado:', user);
         this.loginExitoso = `¡Hola ${user.name}! Entrando... a ScrAppi`;
-        this.authService.setSession(user);
+        
+        // --- 💡 INTEGRACIÓN AQUÍ ---
+        // 1. Guardamos en el servicio (como ya lo hacías)
+        this.authService.setSession(user); 
+        
+        // 2. FORZAMOS el guardado en localStorage para el AuthGuard
+        // Asegúrate de que el nombre 'usuarioSesion' coincida con el que pusiste en el guard.
+        localStorage.setItem('usuarioSesion', JSON.stringify(user)); 
+        // ---------------------------
+
         this.cdr.detectChanges();
 
         setTimeout(() => {
-          this.router.navigate(['/dashboard']);
+          // Usamos { replaceUrl: true } para que no puedan volver atrás al login
+          this.router.navigate(['/dashboard'], { replaceUrl: true });
         }, 2000);
+
       } else {
-        console.warn('❌ No hubo coincidencia para:', { document, password });
         this.errorLogin = 'Documento o contraseña incorrectos.';
         this.cdr.detectChanges();
-        
         setTimeout(() => { this.errorLogin = ''; this.cdr.detectChanges(); }, 5000);
       }
     },

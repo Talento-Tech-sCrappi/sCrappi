@@ -6,6 +6,7 @@ import { HomeMarcameComponent } from './components/dashboard/home-marcame/home-m
 import { AdminUsersComponent } from './components/dashboard/admin-users/admin-users.component';
 import { ReportsComponent } from './components/dashboard/reports/reports.component';
 import { HomeDashboardComponent } from './components/dashboard/home-dashboard/home-dashboard.component';
+import { authGuard } from './guards/auth-guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -14,6 +15,7 @@ export const routes: Routes = [
     //  Define la ruta
     path: 'dashboard',
     component: DashboardComponent,
+    canActivate: [authGuard], // 🛡️ Este es el guardaespaldas
     children: [
       { path: '', component: HomeDashboardComponent },
 
