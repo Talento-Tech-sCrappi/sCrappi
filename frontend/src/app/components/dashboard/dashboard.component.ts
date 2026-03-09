@@ -1,25 +1,39 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router'; // 👈 Asegúrate de importar Router aquí
 import { NgbCollapseModule } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-dashboard',
+  standalone: true, // Veo que usas componentes standalone
   imports: [CommonModule, RouterModule, NgbCollapseModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
-  //Variable para controlar el menu en vista móvil
   isMenuCollapsed = true;
   horaActual: Date = new Date();
   ubicacion: string = 'Esperando acción...';
 
+  // 1. Inyectamos el Router en el constructor
+  constructor(private router: Router) {}
+
   ngOnInit(): void {
-    // Reloj dinámico: Actualiza cada segundo
     setInterval(() => {
       this.horaActual = new Date();
     }, 1000);
+  }
+
+  // 2. Añadimos la función de cerrar sesión
+  logout() {
+    // Borramos la sesión para que el AuthGuard nos bloquee
+    localStorage.removeItem('usuarioSesion'); 
+    
+    // Limpiamos todo el almacenamiento por seguridad
+    localStorage.clear(); 
+
+    // Redirigimos al Login bloqueando el botón "Atrás"
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   marcarAsistencia() {
