@@ -25,21 +25,25 @@ public class WorkLogService {
 
     public WorkLog create(WorkLog workLog) {
         Long userId = workLog.getUser().getId();
-        Long workStationId = workLog.getWorkStation().getId();
 
+        // 🚫 VALIDACIÓN: Buscar si el usuario ya tiene un turno abierto
+        List<WorkLog> logsUsuario = workLogRepository.findByUserId(userId);
+        boolean tieneTurnoAbierto = logsUsuario.stream()
+                .anyMatch(log -> !log.getComplete());
+        if (tieneTurnoAbierto) {
+            throw new RuntimeException("El usuario ya tiene una jornada activa sin cerrar.");
+        }
+        // Si no tiene turnos abiertos, procedemos normal...
+        Long workStationId = workLog.getWorkStation().getId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
         WorkStation workStation = workStationRepository.findById(workStationId)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkStation not found"));
-
         workLog.setUser(user);
         workLog.setWorkStation(workStation);
-
         if (workLog.getHourCheckIn() == null) {
             workLog.setHourCheckIn(LocalDateTime.now());
         }
-
         workLog.setComplete(false);
 
         return workLogRepository.save(workLog);
