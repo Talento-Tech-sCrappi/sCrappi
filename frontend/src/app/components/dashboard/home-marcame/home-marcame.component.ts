@@ -1,6 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap'; //Modal
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { WorklogService } from '../../../services/worklog/worklog.service';
+import { AuthService } from '../../../services/auth/auth.service';
 
 @Component({
   selector: 'app-home-marcame',
@@ -10,110 +12,192 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap'; //Modal
   styleUrl: './home-marcame.component.css',
 })
 export class HomeMarcameComponent implements OnInit {
+  // --- Variables de Estado ---
   horaActual: Date = new Date();
-  ubicacionEstado: string = 'Esperando marcaje...';
+  ubicacionEstado: string = 'Cargando configuración...';
   jornadaActiva: boolean = false;
+  idMarcajeActual: number | null = null; // Para el PUT de salida
+  historialMarcajes: any[] = []; // 👈 Agrega esta línea
 
-  // Variables para la alerta
+  // --- Datos del Usuario y Alertas ---
+  usuarioSesion: any = null;
   mostrarAlertaExito: boolean = false;
   mensajeAlerta: string = '';
-
-  // Variable s Alert Error
   mostrarAlertaError: boolean = false;
   mensajeError: string = '';
 
-  // Actualiza con tus coordenadas reales detectadas
-  readonly PUESTO_LAT = 6.144001849797517;
-  readonly PUESTO_LON = -75.61502790639385;
-  // Mantengamos el radio en 0.001 (aprox 110 metros) para que la geovalla sea precisa
-  readonly RADIO_MAXIMO = 0.001;
+  // --- Configuración Dinámica (Geovalla desde DB) ---
+  puestoLat: number = 0;
+  puestoLon: number = 0;
+  radioMaximo: number = 0;
 
   constructor(
     private modalService: NgbModal,
     private cdRef: ChangeDetectorRef,
+    private worklogService: WorklogService,
+    private authService: AuthService,
   ) {}
 
-  //Mostrar el Reloj
   ngOnInit(): void {
+    // 1. Obtenemos el usuario
+    this.usuarioSesion = this.authService.getUser();
+    // 2. Cargamos la configuración de la oficina (Geovalla)
+    this.cargarConfiguracionGeovalla();
+    if (this.usuarioSesion) {
+      // Primero, cargamos la lista de marcajes para la tabla
+      this.cargarHistorial();
+      // Segundo, verificamos si hay una jornada pendiente por cerrar
+      this.worklogService.obtenerHistorialPorUsuario(this.usuarioSesion.id).subscribe({
+        next: (logs) => {
+          const turnoAbierto = logs.find((log) => !log.complete);
+          if (turnoAbierto) {
+            this.jornadaActiva = true;
+            this.idMarcajeActual = turnoAbierto.id;
+            this.ubicacionEstado = 'Dentro de jornada (Recuperado)';
+            this.cdRef.detectChanges();
+          }
+        },
+      });
+    }
+    // 3. Reloj en tiempo real
     setInterval(() => {
       this.horaActual = new Date();
+      this.cdRef.detectChanges();
     }, 1000);
   }
-  // 1. Método principal que abre el modal de ng-bootstrap
+
+  private cargarConfiguracionGeovalla() {
+    // Consultamos la estación 1 (Sabaneta) de forma dinámica
+    this.worklogService.obtenerConfiguracionEstacion(1).subscribe({
+      next: (estacion) => {
+        this.puestoLat = estacion.latitude;
+        this.puestoLon = estacion.longitude;
+        this.radioMaximo = estacion.radio_meter || 0.001;
+        this.ubicacionEstado = 'GPS Listo (Geovalla Activa)';
+        console.log('📍 Configuración de geovalla cargada:', estacion.name);
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Error al cargar geovalla:', err);
+        this.ubicacionEstado = 'Error al cargar geovalla';
+        this.cdRef.detectChanges();
+      },
+    });
+  }
+
   solicitarRegistro(content: any) {
+    if (!this.usuarioSesion) {
+      this.mensajeError = 'Error: Sesión no identificada.';
+      this.mostrarAlertaError = true;
+      return;
+    }
     this.modalService.open(content, { centered: true }).result.then(
       (result) => {
-        if (result === 'confirmar') {
-          console.log('✅ Usuario confirmó el registro. Iniciando captura GPS...');
-          this.registrarAsistencia();
-        }
+        if (result === 'confirmar') this.registrarAsistencia();
       },
       () => {
-        console.log('🚫 Registro cancelado por el usuario.');
         this.ubicacionEstado = 'Operación cancelada.';
-        this.cdRef.detectChanges(); //
+        this.cdRef.detectChanges();
       },
     );
   }
 
-  // 2. Lógica interna que procesa el GPS y valida la geovalla
   private registrarAsistencia() {
-    if (navigator.geolocation) {
-      this.ubicacionEstado = 'Obteniendo GPS...';
-      this.cdRef.detectChanges();
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
+    if (!navigator.geolocation) return;
 
-          // 👈 ESTE ES EL LOG DE OBSERVABILITY
-          console.log(`📍 Coordenadas detectadas: Lat ${lat}, Lon ${lon}`);
-          console.log(`🎯 Puesto asignado: Lat ${this.PUESTO_LAT}, Lon ${this.PUESTO_LON}`);
+    this.ubicacionEstado = 'Obteniendo GPS...';
+    this.cdRef.detectChanges();
 
-          const distancia = Math.sqrt(
-            Math.pow(lat - this.PUESTO_LAT, 2) + Math.pow(lon - this.PUESTO_LON, 2),
-          );
-          console.log(`📏 Distancia calculada (grados): ${distancia}`);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-          if (distancia <= this.RADIO_MAXIMO) {
-            console.log('✨ Dentro de geovalla. Actualizando estado...');
-            this.jornadaActiva = !this.jornadaActiva;
+        // Cálculo de distancia contra valores dinámicos
+        const distancia = Math.sqrt(
+          Math.pow(lat - this.puestoLat, 2) + Math.pow(lon - this.puestoLon, 2),
+        );
 
-            // Configuración la alerta de Bootstrap
-            this.mensajeAlerta = `Marcaje de ${this.jornadaActiva ? 'Entrada' : 'Salida'} exitoso.`;
-            this.mostrarAlertaExito = true;
-            this.cdRef.detectChanges();
-            this.ubicacionEstado = this.jornadaActiva
-              ? 'Entrada registrada con éxito'
-              : 'Salida registrada con éxito';
-            // La alerta se cierra sola tras 5 segundos
-            setTimeout(() => {
-              this.mostrarAlertaExito = false;
-              this.cdRef.detectChanges(); // También después de ocultar la alerta
-            }, 5000);
+        if (distancia <= this.radioMaximo) {
+          if (!this.jornadaActiva) {
+            // 🟢 FLUJO ENTRADA (POST)
+            const payloadEntrada = {
+              user: { id: this.usuarioSesion.id },
+              workStation: { id: 1 },
+              latitudeIn: lat,
+              longitudeIn: lon,
+              hourCheckIn: new Date().toISOString(),
+              complete: false,
+            };
+
+            this.worklogService.registrarAsistencia(payloadEntrada).subscribe({
+              next: (res) => {
+                this.idMarcajeActual = res.id; // Guardamos ID para la salida posterior
+                this.gestionarExito('Entrada');
+              },
+              error: (err) => this.gestionarError(err),
+            });
           } else {
+            // 🔴 FLUJO SALIDA (PUT)
+            const payloadSalida = {
+              latitudeOut: lat,
+              longitudeOut: lon,
+            };
 
-            console.warn('⚠️ Fuera de geovalla. Registro rechazado.');
-            this.ubicacionEstado = 'Fuera de rango: No puedes marcar aquí.';
-            this.mensajeError = 'Error: Te encuentras fuera de la geovalla permitida.';
-            this.mostrarAlertaError = true;
-            this.cdRef.detectChanges();
-
-            // La alerta de error también se oculta sola tras 5 segundos
-            setTimeout(() => {
-              this.mostrarAlertaError = false;
-              this.cdRef.detectChanges();
-            }, 5000);
+            if (this.idMarcajeActual) {
+              this.worklogService.registrarSalida(this.idMarcajeActual, payloadSalida).subscribe({
+                next: () => {
+                  this.idMarcajeActual = null;
+                  this.gestionarExito('Salida');
+                },
+                error: (err) => this.gestionarError(err),
+              });
+            }
           }
-        },
-        (error) => {
+        } else {
+          this.ubicacionEstado = 'Fuera de rango.';
+          this.mensajeError = 'Te encuentras fuera del perímetro permitido.';
+          this.mostrarAlertaError = true;
+          this.cdRef.detectChanges();
+        }
+      },
+      (error) => {
+        this.ubicacionEstado = 'Error GPS';
+        this.cdRef.detectChanges();
+      },
+      { enableHighAccuracy: true },
+    );
+  }
 
-          console.error('❌ Error de GPS:', error);
-          this.ubicacionEstado = 'Error: Activa el permiso de ubicación.';
+  private gestionarExito(tipo: string) {
+    this.jornadaActiva = !this.jornadaActiva;
+    this.mensajeAlerta = `¡Marcaje de ${tipo} exitoso!`;
+    this.mostrarAlertaExito = true;
+    this.ubicacionEstado = this.jornadaActiva ? 'Dentro de jornada' : 'Fuera de jornada';
+    this.cargarHistorial(); //guarda el historial
+    this.cdRef.detectChanges();
+    setTimeout(() => {
+      this.mostrarAlertaExito = false;
+      this.cdRef.detectChanges();
+    }, 5000);
+  }
+
+  private gestionarError(err: any) {
+    console.error('❌ Error API:', err);
+    this.mensajeError = 'Error de comunicación con el servidor.';
+    this.mostrarAlertaError = true;
+    this.cdRef.detectChanges();
+  }
+
+  private cargarHistorial() {
+    if (this.usuarioSesion) {
+      this.worklogService.obtenerHistorialPorUsuario(this.usuarioSesion.id).subscribe({
+        next: (logs) => {
+          // Ordenamos por los más recientes y tomamos 5
+          this.historialMarcajes = logs.sort((a: any, b: any) => b.id - a.id).slice(0, 5);
           this.cdRef.detectChanges();
         },
-        { enableHighAccuracy: true }, // Forzamos alta precisión para evitar el "doble clic"
-      );
+      });
     }
   }
 }

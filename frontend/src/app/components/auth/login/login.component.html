@@ -3,6 +3,20 @@
     class="card shadow-sm p-4"
     style="max-width: 380px; width: 100%; border: none; background: #f8f9fa"
   >
+   <div *ngIf="errorLogin" class="alert alert-danger shadow-sm border-0 mb-4 animate__animated animate__fadeIn" role="alert">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <div class="small"><strong>Error:</strong> {{ errorLogin }}</div>
+  </div>
+</div>
+
+<div *ngIf="loginExitoso" class="alert alert-success shadow-sm border-0 mb-4 animate__animated animate__fadeIn" role="alert">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <div class="small"><strong>Excelente:</strong> {{ loginExitoso }}</div>
+  </div>
+</div>
+
     <div class="text-center mb-4">
       <h1 class="h3 mb-3 fw-normal">Bienvenido a <strong>sCrappi</strong></h1>
     </div>
@@ -13,13 +27,13 @@
           type="text"
           class="form-control"
           id="floatingInput"
-          formControlName="documento"
-          [ngClass]="{ 'is-invalid': f['documento'].touched && f['documento'].errors }"
+          formControlName="document"
+          [ngClass]="{ 'is-invalid': f['document'].touched && f['document'].errors }"
           placeholder="Documento"
         />
         <label for="floatingInput">Documento</label>
-        <div *ngIf="f['documento'].touched && f['documento'].errors" class="invalid-feedback">
-          <small *ngIf="f['documento'].errors?.['required']">El documento es obligatorio.</small>
+        <div *ngIf="f['document'].touched && f['document'].errors" class="invalid-feedback">
+          <small *ngIf="f['document'].errors?.['required']">El Documento es obligatorio.</small>
           <small *ngIf="f['documento'].errors?.['pattern']">Solo se permiten números.</small>
         </div>
       </div>
@@ -36,12 +50,14 @@
         <label for="floatingPassword">Contraseña</label>
         <div *ngIf="f['password'].touched && f['password'].errors" class="invalid-feedback">
           <small *ngIf="f['password'].errors?.['required']">La contraseña es obligatoria.</small>
-          <small *ngIf="f['password'].errors?.['minlength']">Mínimo 8 caracteres.</small>
+          <small *ngIf="f['password'].errors?.['minlength']">Mínimo 6 caracteres.</small>
         </div>
       </div>
 
       <div class="checkbox mb-3 text-start">
-        <label> <input type="checkbox" formControlName="remember" /> Recordarme (PWA) </label>
+        <label> 
+          <input type="checkbox" formControlName="remember" /> Recordarme (PWA) 
+        </label>
       </div>
 
       <button
@@ -53,10 +69,10 @@
       </button>
 
       <div class="mt-3 text-center">
-        <small
-          >¿No tienes cuenta?
-          <a routerLink="/register" class="text-decoration-none">Regístrate aquí</a></small
-        >
+        <small>
+          ¿No tienes cuenta?
+          <a routerLink="/register" class="text-decoration-none">Regístrate aquí</a>
+        </small>
       </div>
     </form>
   </div>
