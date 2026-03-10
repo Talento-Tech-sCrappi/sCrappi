@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
@@ -25,18 +26,21 @@ public class WorkLog {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"workLogs", "alerts", "assignments", "sessions"})
+    @JsonIgnoreProperties({ "workLogs", "alerts", "assignments", "sessions" })
     private User user;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "workstation_id", nullable = false)
-    @JsonIgnoreProperties({"workLogs", "assignments"})
+    @JsonIgnoreProperties({ "workLogs", "assignments" })
     private WorkStation workStation;
 
     @Column(name = "hour_check_in", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    
     private LocalDateTime hourCheckIn;
 
     @Column(name = "hour_check_out")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime hourCheckOut;
 
     @Column(name = "longitude_in", nullable = false)

@@ -1,31 +1,80 @@
 package com.talentotech.scrappi.controller;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import com.talentotech.scrappi.dto.DashboardSummaryDTO;
 import com.talentotech.scrappi.dto.WorkLogCheckoutRequest;
 import com.talentotech.scrappi.model.WorkLog;
+import com.talentotech.scrappi.repository.WorkLogRepository;
 import com.talentotech.scrappi.service.WorkLogService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/worklogs")
-// @CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
-public class WorkLogController {
 
+public class WorkLogController {
     private final WorkLogService workLogService;
+    private final WorkLogRepository workLogRepository;
+
+    @GetMapping("/summary/{userId}")
+    public ResponseEntity<DashboardSummaryDTO> getUserSummary(@PathVariable Long userId) {
+        Optional<WorkLog> lastLog = workLogRepository.findFirstByUserIdAndCompleteOrderByCreatedAtDesc(userId, false)
+                .or(() -> workLogRepository.findFirstByUserIdAndCompleteOrderByCreatedAtDesc(userId, true));
+
+        String event = "Sin registros";
+        String location = "Ubicación desconocida";
+        boolean inside = false;
+
+        if (lastLog.isPresent()) {
+            WorkLog log = lastLog.get();
+
+            // 1. Decidimos qué hora mostrar (Entrada o Salida) según el estado
+            LocalDateTime horaAMostrar = log.getComplete() ? log.getHourCheckOut() : log.getHourCheckIn();
+
+            // 2. Formateamos la hora con seguridad (null-safe)
+            String time = (horaAMostrar != null)
+                    ? horaAMostrar.format(DateTimeFormatter.ofPattern("hh:mm a"))
+                    : "--:--";
+
+            // 3. Construimos los Strings finales para el Dashboard
+            event = (log.getComplete() ? "Salida: " : "Entrada: ") + time;
+            location = log.getWorkStation().getName() + (log.getComplete() ? " - FUERA" : " - DENTRO");
+            inside = !log.getComplete();
+        }
+
+        // 📊 LÓGICA REAL PARA EL GRÁFICO
+        List<Object[]> complianceData = workLogRepository.getWeeklyCompliance(userId);
+        // Inicializamos los 7 días en 0
+        Integer[] progress = { 0, 0, 0, 0, 0, 0, 0 };
+        for (Object[] row : complianceData) {
+            int day = ((Number) row[0]).intValue(); // 0=Dom, 1=Lun... en Postgres
+            int val = ((Number) row[1]).intValue();
+            // Ajustamos el índice según tu frontend (que asume Lun-Dom)
+            int index = (day == 0) ? 6 : day - 1;
+            if (index >= 0 && index < 7)
+                progress[index] = val;
+        }
+
+        DashboardSummaryDTO summary = DashboardSummaryDTO.builder()
+                .lastEvent(event)
+                .locationStatus(location)
+                .alertsToday(0)
+                .isInside(inside)
+                .weeklyProgress(List.of(progress))
+                .build();
+
+        return ResponseEntity.ok(summary);
+    }
 
     @PostMapping
     public ResponseEntity<WorkLog> create(@RequestBody WorkLog workLog) {
@@ -59,4 +108,5 @@ public class WorkLogController {
     public ResponseEntity<List<WorkLog>> findByWorkStation(@PathVariable Long workStationId) {
         return ResponseEntity.ok(workLogService.findByWorkStation(workStationId));
     }
+
 }

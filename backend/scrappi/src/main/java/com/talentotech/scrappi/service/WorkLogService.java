@@ -2,7 +2,7 @@ package com.talentotech.scrappi.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.time.ZoneId;
 import org.springframework.stereotype.Service;
 
 import com.talentotech.scrappi.exception.ResourceNotFoundException;
@@ -33,17 +33,20 @@ public class WorkLogService {
         if (tieneTurnoAbierto) {
             throw new RuntimeException("El usuario ya tiene una jornada activa sin cerrar.");
         }
-        // Si no tiene turnos abiertos, procedemos normal...
+
         Long workStationId = workLog.getWorkStation().getId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         WorkStation workStation = workStationRepository.findById(workStationId)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkStation not found"));
+
         workLog.setUser(user);
         workLog.setWorkStation(workStation);
-        if (workLog.getHourCheckIn() == null) {
-            workLog.setHourCheckIn(LocalDateTime.now());
-        }
+
+        // 🔥 CAMBIO CLAVE: Quitamos el 'if' y forzamos la hora de Bogotá SIEMPRE
+        // Esto sobrescribe cualquier cosa que Angular mande mal
+        workLog.setHourCheckIn(LocalDateTime.now(ZoneId.of("America/Bogota")));
+
         workLog.setComplete(false);
 
         return workLogRepository.save(workLog);
@@ -53,7 +56,9 @@ public class WorkLogService {
         WorkLog workLog = workLogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkLog not found"));
 
-        workLog.setHourCheckOut(LocalDateTime.now());
+        // Para que la hora cargue en Bogotá
+        workLog.setHourCheckOut(LocalDateTime.now(ZoneId.of("America/Bogota")));
+
         workLog.setLongitudeOut(longitudeOut);
         workLog.setLatitudeOut(latitudeOut);
         workLog.setComplete(true);
