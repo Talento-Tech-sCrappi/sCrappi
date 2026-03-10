@@ -1,23 +1,31 @@
 package com.talentotech.scrappi.dto;
 
 public class LoginRequest {
-    private String username;
+    private String identifier; // Aquí llegará o el documento (100340) o el username ("pepito")
     private String password;
 
-    public String getUsername() {
-        return this.username;
+    // Constructores
+    public LoginRequest() {}
+
+    public LoginRequest(String identifier, String password) {
+        this.identifier = identifier;
+        this.password = password;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    // Getters y Setters (Súper importantes para que Spring pueda leer el JSON)
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 
     public String getPassword() {
-        return this.password;
+        return password;
     }
 
     public void setPassword(String password) {
         this.password = password;
     }
-
 }

@@ -1,13 +1,18 @@
 package com.talentotech.scrappi.service;
+
 import java.util.List;
 import java.util.Optional;
 import jakarta.servlet.http.HttpServletRequest;
 import com.talentotech.scrappi.service.SessionService;
 import com.talentotech.scrappi.dto.LoginRequest;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.talentotech.scrappi.model.Session;
 import com.talentotech.scrappi.model.SessionStatus;
 import com.talentotech.scrappi.dto.LoginRequest;
@@ -22,63 +27,79 @@ public class UserService {
     private final SessionService sessionService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-   
+
     public UserService(UserRepository userRepository,
-    PasswordEncoder passwordEncoder, SessionService sessionService
-    ){
+            PasswordEncoder passwordEncoder, SessionService sessionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionService = sessionService;
     }
-    public User crearUsuario(User user){
+
+    public User crearUsuario(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
-    public List<User> findAll(){
+
+    public List<User> findAll() {
         return userRepository.findAll();
     }
-    public Optional<User> findById(Long id){
+
+    public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 
-    public User update(long id, User userDetails){
+    public User update(long id, User userDetails) {
         User user = userRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        if(userDetails.getUserName()!=null &&
-        !userDetails.getUserName().trim().isEmpty()){
-        user.setUserName(userDetails.getUserName());
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        if (userDetails.getUserName() != null &&
+                !userDetails.getUserName().trim().isEmpty()) {
+            user.setUserName(userDetails.getUserName());
         }
-          if(userDetails.getEmail()!=null &&
-        !userDetails.getEmail().trim().isEmpty()){
-          user.setEmail(userDetails.getEmail());
+        if (userDetails.getEmail() != null &&
+                !userDetails.getEmail().trim().isEmpty()) {
+            user.setEmail(userDetails.getEmail());
         }
-         if(userDetails.getPassword()!=null &&
-        !userDetails.getPassword().trim().isEmpty()){
-          user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        if (userDetails.getPassword() != null &&
+                !userDetails.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         }
-            
-        if(userDetails.getRole()!=null)
+
+        if (userDetails.getRole() != null)
             user.setRole(userDetails.getRole());
-        
+
         return userRepository.save(user);
     }
 
-    public String login(LoginRequest request, HttpServletRequest httpRequest){
-        Optional<User> optionalUser = userRepository.findByUserName(request.getUsername());
-        if(optionalUser.isEmpty()){
-            throw new ResourceNotFoundException("usuario no encontrado");
-        }
-        User user = optionalUser.get();
-        if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
-            throw new ResourceNotFoundException("Contraseña incorrecta");
+    public String login(LoginRequest request, HttpServletRequest httpRequest) {
+        String identifier = request.getIdentifier(); // 👈 Usamos el nuevo campo del DTO
+        Optional<User> optionalUser;
+
+        try {
+            // Intentamos si es un número (Documento)
+            Long doc = Long.parseLong(identifier);
+            optionalUser = userRepository.findByDocument(doc);
+
+            if (optionalUser.isEmpty()) {
+                optionalUser = userRepository.findByUserName(identifier);
+            }
+        } catch (NumberFormatException e) {
+            // Si no es número, es un username
+            optionalUser = userRepository.findByUserName(identifier);
         }
 
-        String ip = httpRequest.getRemoteAddr();
-        String device = httpRequest.getHeader("User-Agent");
-    
-        sessionService.createLoginSession(user.getId(), ip, device);
+        User user = optionalUser
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        // Comparación segura con BCrypt
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Contraseña incorrecta");
+        }
+
+        // Registro de auditoría
+        sessionService.createLoginSession(user.getId(), httpRequest.getRemoteAddr(),
+                httpRequest.getHeader("User-Agent"));
+
         return "Login correcto";
     }
 
-} 
-
+}

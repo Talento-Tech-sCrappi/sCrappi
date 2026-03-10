@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { UserService } from '../../../services/user/user.service'; // 👈 Necesario para validar en DB
 import { AuthService } from '../../../services/auth/auth.service'; // 👈 Necesario para guardar sesión
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -19,10 +20,11 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private router: Router,
     private userService: UserService,
     private authService: AuthService,
+    private router: Router,
     private cdr: ChangeDetectorRef,
+    private http: HttpClient, // 👈 AÑADE ESTA LÍNEA AQUÍ
   ) {}
 
   get f() {
@@ -30,61 +32,76 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // 🔒 PASO A: Validar si ya está logueado ANTES de mostrar el formulario
+    if (this.authService.isLoggedIn()) {
+      this.router.navigate(['/dashboard'], { replaceUrl: true });
+      return; // Salimos de la función para no ejecutar lo de abajo
+    }
+
+    // 📝 PASO B: Tu código actual del formulario
     this.loginForm = this.fb.group({
-      // Documento es numérico según tu estructura de pgAdmin
       document: ['', [Validators.required, Validators.pattern('^[0-9]*$')]],
-      password: ['', [Validators.required, Validators.minLength(6)]], // Ajustado a 6 para pruebas
+      password: ['', [Validators.required, Validators.minLength(6)]],
       remember: [false],
     });
   }
 
-onLogin(): void {
-  this.errorLogin = '';
-  this.loginExitoso = '';
+  onLogin(): void {
+    this.errorLogin = '';
+    this.loginExitoso = '';
 
-  if (this.loginForm.invalid) {
-    this.loginForm.markAllAsTouched();
-    return;
-  }
-
-  const { document, password } = this.loginForm.value;
-
-  this.userService.getUsers().subscribe({
-    next: (users) => {
-      const user = users.find(u =>
-        String(u.document).trim() === String(document).trim() && 
-        String(u.password) === String(password)
-      );
-
-      if (user) {
-        this.loginExitoso = `¡Hola ${user.name}! Entrando... a ScrAppi`;
-        
-        // --- 💡 INTEGRACIÓN AQUÍ ---
-        // 1. Guardamos en el servicio (como ya lo hacías)
-        this.authService.setSession(user); 
-        
-        // 2. FORZAMOS el guardado en localStorage para el AuthGuard
-        // Asegúrate de que el nombre 'usuarioSesion' coincida con el que pusiste en el guard.
-        localStorage.setItem('usuarioSesion', JSON.stringify(user)); 
-        // ---------------------------
-
-        this.cdr.detectChanges();
-
-        setTimeout(() => {
-          // Usamos { replaceUrl: true } para que no puedan volver atrás al login
-          this.router.navigate(['/dashboard'], { replaceUrl: true });
-        }, 2000);
-
-      } else {
-        this.errorLogin = 'Documento o contraseña incorrectos.';
-        this.cdr.detectChanges();
-        setTimeout(() => { this.errorLogin = ''; this.cdr.detectChanges(); }, 5000);
-      }
-    },
-    error: (err) => {
-      this.errorLogin = 'Error de comunicación con el servidor.';
-      this.cdr.detectChanges();
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
     }
-  });
-}
+
+    // 1. Extraemos los datos del formulario
+    const { document, password } = this.loginForm.value;
+
+    // 2. Armamos el DTO para el Backend (coincidiendo con LoginRequest.java)
+    const loginRequest = {
+      identifier: String(document).trim(), // Enviamos el documento como identificador
+      password: password,
+    };
+
+    // 3. Llamamos al endpoint de Login real
+    // Usamos { responseType: 'text' } porque el Java devuelve un String plano
+    this.http
+      .post('http://localhost:8080/api/users/login', loginRequest, { responseType: 'text' })
+      .subscribe({
+        next: (response) => {
+          // Si el Backend responde "Login correcto", procedemos
+          if (response === 'Login correcto') {
+            // 4. Como el login solo devuelve un texto, necesitamos los datos del usuario
+            // para el Dashboard. Los buscamos una sola vez por su documento.
+            this.userService.getUsers().subscribe((users) => {
+              const user = users.find((u) => String(u.document) === String(document));
+
+              if (user) {
+                this.loginExitoso = `¡Hola ${user.name}! Entrando... a ScrAppi`;
+
+                // Guardamos la sesión en el servicio y en localStorage
+                this.authService.setSession(user);
+                localStorage.setItem('usuarioSesion', JSON.stringify(user));
+
+                this.cdr.detectChanges();
+
+                setTimeout(() => {
+                  this.router.navigate(['/dashboard'], { replaceUrl: true });
+                }, 2000);
+              }
+            });
+          }
+        },
+        error: (err) => {
+          // Si el servidor devuelve 401 o 404, entra aquí
+          this.errorLogin = 'Documento o contraseña incorrectos.';
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.errorLogin = '';
+            this.cdr.detectChanges();
+          }, 5000);
+        },
+      });
+  }
 }
