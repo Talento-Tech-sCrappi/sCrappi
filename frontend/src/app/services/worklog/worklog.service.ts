@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root',
 })
 export class WorklogService {
-  private apiUrl = 'http://localhost:8080/api/worklogs';
+  private apiUrl = 'http://localhost:8081/api/worklogs';
 
   constructor(private http: HttpClient) {}
 
@@ -26,8 +26,13 @@ export class WorklogService {
     return this.http.get<any[]>(`${this.apiUrl}/user/${userId}`);
   }
 
+  // 📋 Para obtener todos los worklogs (Reportes)
+  obtenerTodosLosWorklogs(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl);
+  }
+
   // Obtener datos de la oficina (Geovalla)
   obtenerConfiguracionEstacion(id: number): Observable<any> {
-    return this.http.get(`http://localhost:8080/api/workstation/${id}`);
+    return this.http.get(`http://localhost:8081/api/workstation/${id}`);
   }
 }
