@@ -29,7 +29,7 @@ public class UserController {
 
     public UserController(UserService userService) {
         this.userService = userService;
-        
+
     }
 
     @PostMapping
@@ -65,7 +65,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<User> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         return ResponseEntity.ok(userService.login(request, httpRequest));
     }
 

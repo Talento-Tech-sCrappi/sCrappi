@@ -5,14 +5,12 @@ public class LoginRequest {
     private String password;
 
     // Constructores
-    public LoginRequest() {
-    }
+    public LoginRequest() {}
 
     // Getters y Setters (Súper importantes para que Spring pueda leer el JSON)
     public String getIdentifier() {
         return identifier;
     }
-
     public void setIdentifier(String identifier) {
         this.identifier = identifier;
     }

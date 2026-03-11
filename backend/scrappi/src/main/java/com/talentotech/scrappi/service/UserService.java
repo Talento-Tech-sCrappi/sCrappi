@@ -85,14 +85,14 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
 
         // Corregido: Borrado lógico usando tu variable 'status'
-        user.setStatus(false);
+        user.setStatus(!user.isStatus());
         // user.setRole(Role.INACTIVE); // Solo si tienes INACTIVE en tu Enum Role
 
         userRepository.save(user);
     }
 
-    public String login(LoginRequest request, HttpServletRequest httpRequest) {
-        String identifier = request.getIdentifier(); // 👈 Asegúrate que LoginRequest.java tenga 'identifier'
+    public User login(LoginRequest request, HttpServletRequest httpRequest) {
+        String identifier = request.getIdentifier();
 
         if (identifier == null || identifier.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El identificador es obligatorio");
@@ -100,12 +100,14 @@ public class UserService {
 
         Optional<User> optionalUser;
         try {
+            // Intentamos buscar por Documento (Long)
             Long doc = Long.parseLong(identifier);
             optionalUser = userRepository.findByDocument(doc);
             if (optionalUser.isEmpty()) {
                 optionalUser = userRepository.findByUserName(identifier);
             }
         } catch (NumberFormatException e) {
+            // Si no es número, buscamos por UserName
             optionalUser = userRepository.findByUserName(identifier);
         }
 
@@ -120,10 +122,16 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Contraseña incorrecta");
         }
 
+        // Registramos la sesión en BD
         sessionService.createLoginSession(user.getId(), httpRequest.getRemoteAddr(),
                 httpRequest.getHeader("User-Agent"));
 
-        return "Login correcto";
+        return user; // 👈 AJUSTE: Retornamos el objeto para que el Front tenga el Role
+    }
+
+    public User authenticate(LoginRequest request, HttpServletRequest httpRequest) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'authenticate'");
     }
 
 }
