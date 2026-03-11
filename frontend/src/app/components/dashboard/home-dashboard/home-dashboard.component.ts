@@ -35,6 +35,7 @@ export class HomeDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
   hoy: Date = new Date();
 
   private intervalId: any; // 👈 Para limpiar el reloj al salir
+  currentUserRole: any;
 
   constructor(
     private authService: AuthService,
@@ -48,14 +49,12 @@ export class HomeDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
       this.nombreUsuario = user.name;
       this.apellidoUsuario = user.lastName;
 
+      // 1. Capturamos el rol (asegurándonos de que esté en mayúsculas)
+      this.currentUserRole = user.role ? user.role.toUpperCase() : 'EMPLOYED';
+
       // Forzamos que el ID sea numérico para evitar errores en la URL
       this.cargarResumen(Number(user.id));
     }
-
-    // Guardamos el ID del intervalo para poder destruirlo después
-    this.intervalId = setInterval(() => {
-      this.hoy = new Date();
-    }, 60000);
   }
 
   ngOnDestroy(): void {
@@ -87,7 +86,6 @@ export class HomeDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
         this.cdr.detectChanges();
       },
     });
-  
   }
 
   //Renderchar

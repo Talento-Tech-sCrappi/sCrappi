@@ -22,17 +22,17 @@ export class DashboardComponent implements OnInit {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
   ) {}
 
-  ngOnInit(): void {
-    // 2. Recuperamos los datos del usuario logueado para mostrar su nombre o ID
-    this.usuarioLogueado = this.authService.getUser();
+  currentUserRole: string = '';
 
-    // Reloj en tiempo real
-    setInterval(() => {
-      this.horaActual = new Date();
-    }, 1000);
+  ngOnInit() {
+    const dataSesion = localStorage.getItem('usuariosSesion');
+    if (dataSesion) {
+      const user = JSON.parse(dataSesion);
+      this.currentUserRole = user.role ? user.role.toUpperCase() : 'EMPLOYED';
+    }
   }
 
   // 3. Logo inteligente: Si hay sesión, se queda en dashboard.
@@ -63,7 +63,7 @@ export class DashboardComponent implements OnInit {
         (pos) => {
           const { latitude, longitude } = pos.coords;
           this.ubicacion = `Marcado en: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          
+
           // Mensaje personalizado con el nombre del usuario logueado
           const nombre = this.usuarioLogueado?.name || 'Usuario';
           alert(`¡${nombre}, marcaje exitoso a las ${this.horaActual.toLocaleTimeString()}!`);

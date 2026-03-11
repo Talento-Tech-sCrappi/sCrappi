@@ -96,39 +96,40 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card border-0 shadow-sm h-100 hover-card" style="border-radius: 20px">
-        <div class="card-body p-4 text-center">
-          <div class="icon-circle bg-danger-subtle text-danger mb-3 mx-auto">
-            <i class="bi bi-people-fill fs-2"></i>
-          </div>
-          <h5 class="fw-bold">Personal</h5>
-          <p class="text-muted small">Gestiona geovallas y empleados.</p>
-          <button
-            class="btn btn-outline-danger w-100 rounded-pill"
-            routerLink="/dashboard/usuarios"
-          >
-            Gestionar
-          </button>
-        </div>
+<div class="col-md-4" *ngIf="currentUserRole === 'ADMIN' || currentUserRole === 'SUPERVISOR'">
+  <div class="card border-0 shadow-sm h-100 hover-card" style="border-radius: 20px">
+    <div class="card-body p-4 text-center">
+      <div class="icon-circle bg-danger-subtle text-danger mb-3 mx-auto">
+        <i class="bi bi-people-fill fs-2"></i>
       </div>
+      <h5 class="fw-bold">Personal</h5>
+      <p class="text-muted small">Gestiona geovallas y empleados.</p>
+      <button
+        class="btn btn-outline-danger w-100 rounded-pill"
+        routerLink="/dashboard/usuarios"
+      >
+        Gestionar
+      </button>
     </div>
-    <div class="col-md-4">
-      <div class="card border-0 shadow-sm h-100 hover-card" style="border-radius: 20px">
-        <div class="card-body p-4 text-center">
-          <div class="icon-circle bg-success-subtle text-success mb-3 mx-auto">
-            <i class="bi bi-file-earmark-text-fill fs-2"></i>
-          </div>
-          <h5 class="fw-bold">Reportes</h5>
-          <p class="text-muted small">Auditoría y exportación Excel.</p>
-          <button
-            class="btn btn-outline-success w-100 rounded-pill"
-            routerLink="/dashboard/reportes"
-          >
-            Ver
-          </button>
-        </div>
+  </div>
+</div>
+
+<div class="col-md-4" *ngIf="currentUserRole === 'ADMIN' || currentUserRole === 'SUPERVISOR'">
+  <div class="card border-0 shadow-sm h-100 hover-card" style="border-radius: 20px">
+    <div class="card-body p-4 text-center">
+      <div class="icon-circle bg-success-subtle text-success mb-3 mx-auto">
+        <i class="bi bi-file-earmark-text-fill fs-2"></i>
       </div>
+      <h5 class="fw-bold">Reportes</h5>
+      <p class="text-muted small">Auditoría y exportación Excel.</p>
+      <button
+        class="btn btn-outline-success w-100 rounded-pill"
+        routerLink="/dashboard/reportes"
+      >
+        Ver
+      </button>
     </div>
+  </div>
+</div>
   </div>
 </div>

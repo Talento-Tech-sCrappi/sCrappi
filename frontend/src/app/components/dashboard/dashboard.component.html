@@ -3,7 +3,7 @@
   style="z-index: 1050"
 >
   <div class="container-fluid">
-<a class="navbar-brand fw-bold" (click)="irAlInicio()" style="cursor: pointer;">sCrappi</a>
+    <a class="navbar-brand fw-bold" (click)="irAlInicio()" style="cursor: pointer">sCrappi</a>
     <button
       class="navbar-toggler"
       type="button"
@@ -32,13 +32,11 @@
             Marcaje
           </a>
         </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            routerLink="/dashboard/usuarios"
-            routerLinkActive="active"
-            (click)="isMenuCollapsed = true"
-          >
+        <li
+          class="nav-item"
+          *ngIf="currentUserRole === 'ADMIN' || currentUserRole === 'SUPERVISOR'"
+        >
+          <a class="nav-link" routerLink="/dashboard/usuarios" routerLinkActive="active">
             Administración
           </a>
         </li>
