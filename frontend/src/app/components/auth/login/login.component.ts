@@ -58,26 +58,11 @@ export class LoginComponent implements OnInit {
       password: this.loginForm.value.password,
     };
 
-<<<<<<< HEAD
-    // 3. Llamamos al endpoint de Login real
-    // Usamos { responseType: 'text' } porque el Java devuelve un String plano
-    this.http
-      .post('http://localhost:8081/api/users/login', loginRequest, { responseType: 'text' })
-      .subscribe({
-        next: (response) => {
-          // Si el Backend responde "Login correcto", procedemos
-          if (response === 'Login correcto') {
-            // 4. Como el login solo devuelve un texto, necesitamos los datos del usuario
-            // para el Dashboard. Los buscamos una sola vez por su documento.
-            this.userService.getUsers().subscribe((users) => {
-              const user = users.find((u) => String(u.document) === String(document));
-=======
     // AJUSTE 3: Eliminamos responseType: 'text' y procesamos el JSON directo
     this.http.post<any>('http://localhost:8080/api/users/login', loginRequest).subscribe({
       next: (user) => {
         if (user && user.role) {
           this.loginExitoso = `¡Excelente: ¡Hola ${user.name}! Entrando a ScrAppi...`;
->>>>>>> 7842aa4 (frontend(auth): actualizar lógica de inicio de sesión y registro de usuarios)
 
           // IMPORTANTE: Guardamos el objeto como JSON para el componente de administración
           //GUARDAMOS LAS DOS LLAVES PARA NO TENER ERRORES
